@@ -1,4 +1,15 @@
 # You can write code above the if-main block.
+import numpy as np
+import pandas as pd
+import scipy
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+import torch
+import torch.optim as optim
+from torch.utils.data import DataLoader
+
+from models import L_05_day2_C
 
 if __name__ == "__main__":
     # You should not modify this part.
@@ -12,16 +23,73 @@ if __name__ == "__main__":
 
     # The following part is an example.
     # You can modify it at will.
-    training_data = load_data(args.training)
-    trader = Trader()
-    trader.train(training_data)
 
-    testing_data = load_data(args.testing)
+    # ------- Load PyTorch Pretrained Model ------- #
+    model = L_05_day2_C(4)
+    optimizer = optim.Adam(model.parameters(), lr=0.00001, weight_decay=0)
+
+    checkpoint = torch.load('7d_lstm_day2_best2.pt')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    model.eval()
+    model.double()
+    # ------- end ------- #
+
+
+    # ------- Load Testing Data ------- # 
+    test_data = pd.read_csv(args.testing, names=['A', 'B', 'C', 'D'])
+    # ------- end ------- #
+
+
+    # ------- Status ------- #
+    status_now = 0      # {0 : None}, {1 : Have 1}, {-1 : Short 1}
+    command = []
+    # ------- end ------- #
+
+
+    # ------- Start predict and command ------- #
     with open(args.output, "w") as output_file:
-        for row in testing_data:
-            # We will perform your action as the open price in the next day.
-            action = trader.predict_action(row)
-            output_file.write(action)
-
-            # this is your option, you can leave it empty.
-            trader.re_training()
+        for day_x in range( len( test_data ) - 1 ):
+            # Step 1: Predict tomorrow's stock price and the day after tomorrow's stock price
+            day_value = torch.tensor( test_data.iloc[day_x].values ).unsqueeze(0).double()
+            predict = model( day_value ) * torch.tensor( day_value[0][0] )
+            predict = predict.squeeze(0)
+            diff = predict[1] - predict[0]
+            # Step 2: Check whether it will be go up/down with Step1's result
+            if diff > 0:      # go up
+                if status_now == 0:
+                    #command.append(1)
+                    output_file.write(str(1))
+                    output_file.write('\n')
+                    status_now = 1
+                elif status_now == 1:
+                    #command.append(0)
+                    output_file.write(str(0))
+                    output_file.write('\n')
+                    status_now = 1
+                elif status_now == -1:
+                    #command.append(1)
+                    output_file.write(str(1))
+                    output_file.write('\n')
+                    status_now = 0
+            elif diff < 0:      # go down
+                if status_now == 0:
+                    #command.append(-1)
+                    output_file.write(str(-1))
+                    output_file.write('\n')
+                    status_now = -1
+                elif status_now == 1:
+                    #command.append(-1)
+                    output_file.write(str(-1))
+                    output_file.write('\n')
+                    status_now = 0
+                elif status_now == -1:
+                    #command.append(0)
+                    output_file.write(str(0))
+                    output_file.write('\n')
+                    status_now = -1
+            else:
+                #command.append(0)
+                output_file.write(str(0))
+                output_file.write('\n')

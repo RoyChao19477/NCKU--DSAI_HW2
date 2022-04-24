@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from t2v import SineActivation, CosineActivation
-
 class CNN_01(nn.Module):
     def __init__(self, input_size):
         super(CNN_01, self).__init__()
@@ -757,7 +755,6 @@ class L_05_day2_C(nn.Module):
         self.fc2 = nn.Linear(12, 2)
 
     def forward(self, x):
-        # print(x.shape)
         x = torch.unsqueeze(x, 1)
         x, _ = self.lstm(x)
         x = F.relu(x)

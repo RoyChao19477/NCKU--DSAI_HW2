@@ -48,3 +48,26 @@ class df_30(Dataset):
         #y = torch.tensor( self.y.iloc[idx].values )
 
         return x, y
+
+
+class df_day2(Dataset):
+    def __init__(self, train=True):
+        df_train = pd.read_csv("data/3_training_set_day2.csv", index_col=0)
+        df_test = pd.read_csv("data/4_testing_set_day2.csv", index_col=0)
+
+        if train:
+            self.x = df_train.drop(columns=['PRED_1', 'PRED_2'])
+            self.y = df_train[['PRED_1', 'PRED_2']]
+        else:
+            self.x = df_test.drop(columns=['PRED_1', 'PRED_2'])
+            self.y = df_test[['PRED_1', 'PRED_2']]
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        x = torch.tensor( self.x.iloc[idx].values )
+        y = torch.tensor( self.y.iloc[idx] )
+        #y = torch.tensor( self.y.iloc[idx].values )
+    
+        return x, y
